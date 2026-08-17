@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Operations Dashboard</title>
+    <!-- Tailwind CSS for Premium Dark Mode UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-10 text-center md:text-left border-b border-gray-700 pb-4">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-400 tracking-wide">MBDC Plant Dashboard</h1>
+            <p id="last-updated" class="text-gray-400 mt-2 text-sm">Fetching live data...</p>
+        </header>
+
+        <!-- Dashboard Cards Grid -->
+        <div id="dashboard-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading Indicator -->
+            <div class="col-span-full text-center text-gray-400 py-10" id="loading-text">
+                <p class="text-xl animate-pulse">Connecting to Render API...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript to Fetch Data -->
+    <script>
+        // Aapka Live API Link
+        const apiURL = 'https://mbdc.onrender.com/api/dashboard';
+
+        fetch(apiURL)
+            .then(response => response.json())
+            .then(data => {
+                // Remove Loading Text
+                document.getElementById('loading-text').style.display = 'none';
+
+                // Update Timestamp
+                document.getElementById('last-updated').innerText = 
+                    `Live Status: ${data.meta_data.plant_status} | Operator: ${data.meta_data.operator}`;
+
+                const container = document.getElementById('dashboard-container');
+                const sections = data.plant_sections;
+
+                // Loop through all sections (Raw Material, Utilities, etc.)
+                for (const [categoryName, dataArray] of Object.entries(sections)) {
+                    dataArray.forEach(sectionData => {
+                        
+                        // Create Card UI
+                        let cardHTML = `
+                            <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 hover:border-blue-500 transition-colors duration-300">
+                                <h2 class="text-xl font-bold text-blue-300 mb-4 uppercase tracking-wider border-b border-gray-600 pb-2">
+                                    ${sectionData.section}
+                                </h2>
+                                <div class="space-y-3 text-sm">
+                        `;
+
+                        // Add Data inside Card
+                        for (const [key, value] of Object.entries(sectionData)) {
+                            if (key !== 'section') {
+                                // Format Key names for display
+                                const formattedKey = key.replace(/_/g, ' ').toUpperCase();
+                                
+                                // Color code status alerts
+                                let valueColor = "text-white font-semibold";
+                                if (value === "Optimal") valueColor = "text-green-400 font-bold";
+                                if (typeof value === 'string' && value.includes("Warning")) valueColor = "text-red-400 font-bold";
+
+                                cardHTML += `
+                                    <div class="flex justify-between border-b border-gray-700 pb-1">
+                                        <span class="text-gray-400">${formattedKey}</span>
+                                        <span class="${valueColor}">${value}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        cardHTML += `</div></div>`;
+                        container.innerHTML += cardHTML;
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-text').innerHTML = 
+                    `<span class="text-red-500 text-xl font-bold">Error loading data. Check API connection.</span>`;
+                console.error("API Error:", error);
+            });
+    </script>
+</body>
+</html>
+
